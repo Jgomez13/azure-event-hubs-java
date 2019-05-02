@@ -1,8 +1,8 @@
 package com.microsoft.azure.eventhubs.lib;
 
-import com.microsoft.azure.eventhubs.MessagingFactory;
-import com.microsoft.azure.eventhubs.amqp.CustomIOHandler;
-import com.microsoft.azure.eventhubs.amqp.ReactorHandler;
+import com.microsoft.azure.eventhubs.impl.CustomIOHandler;
+import com.microsoft.azure.eventhubs.impl.MessagingFactory;
+import com.microsoft.azure.eventhubs.impl.ReactorHandler;
 import org.apache.qpid.proton.Proton;
 import org.apache.qpid.proton.amqp.Symbol;
 import org.apache.qpid.proton.amqp.transport.ErrorCondition;
@@ -14,10 +14,6 @@ import java.io.IOException;
 
 public class FaultInjectingReactorFactory extends MessagingFactory.ReactorFactory {
 
-    public enum FaultType {
-        NetworkOutage
-    }
-
     private volatile FaultType faultType;
 
     public void setFaultType(final FaultType faultType) {
@@ -25,7 +21,7 @@ public class FaultInjectingReactorFactory extends MessagingFactory.ReactorFactor
     }
 
     @Override
-    public Reactor create(final ReactorHandler reactorHandler) throws IOException {
+    public Reactor create(final ReactorHandler reactorHandler, final int maxFrameSize, final String name) throws IOException {
         final Reactor reactor = Proton.reactor(reactorHandler);
 
         switch (this.faultType) {
@@ -39,7 +35,15 @@ public class FaultInjectingReactorFactory extends MessagingFactory.ReactorFactor
         return reactor;
     }
 
+    public enum FaultType {
+        NetworkOutage
+    }
+
     public final static class NetworkOutageSimulator extends CustomIOHandler {
+
+        public NetworkOutageSimulator() {
+            super("NetworkOutageSimulator");
+        }
 
         @Override
         public void onUnhandled(final Event event) {

@@ -5,6 +5,8 @@
 package com.microsoft.azure.eventhubs;
 
 import com.google.gson.Gson;
+import com.microsoft.azure.eventhubs.impl.ClientConstants;
+import com.microsoft.azure.eventhubs.impl.StringUtil;
 
 import java.io.IOException;
 import java.io.InputStreamReader;

@@ -4,11 +4,15 @@
  */
 package com.microsoft.azure.eventhubs;
 
+import com.microsoft.azure.eventhubs.impl.ClientConstants;
+import com.microsoft.azure.eventhubs.impl.RetryExponential;
+
 import java.time.Duration;
 import java.util.concurrent.ConcurrentHashMap;
 
 // TODO: SIMPLIFY retryPolicy - ConcurrentHashMap is not needed
 public abstract class RetryPolicy {
+
     private static final RetryPolicy NO_RETRY = new RetryExponential(Duration.ofSeconds(0), Duration.ofSeconds(0), 0, ClientConstants.NO_RETRY);
 
     private final String name;
@@ -19,18 +23,6 @@ public abstract class RetryPolicy {
         this.name = name;
         this.retryCounts = new ConcurrentHashMap<String, Integer>();
         this.serverBusySync = new Object();
-    }
-
-    public void incrementRetryCount(String clientId) {
-        Integer retryCount = this.retryCounts.get(clientId);
-        this.retryCounts.put(clientId, retryCount == null ? 1 : retryCount + 1);
-    }
-
-    public void resetRetryCount(String clientId) {
-        Integer currentRetryCount = this.retryCounts.get(clientId);
-        if (currentRetryCount != null && currentRetryCount.intValue() != 0) {
-            this.retryCounts.put(clientId, 0);
-        }
     }
 
     public static boolean isRetryableException(Exception exception) {
@@ -55,6 +47,18 @@ public abstract class RetryPolicy {
 
     public static RetryPolicy getNoRetry() {
         return RetryPolicy.NO_RETRY;
+    }
+
+    public void incrementRetryCount(String clientId) {
+        Integer retryCount = this.retryCounts.get(clientId);
+        this.retryCounts.put(clientId, retryCount == null ? 1 : retryCount + 1);
+    }
+
+    public void resetRetryCount(String clientId) {
+        Integer currentRetryCount = this.retryCounts.get(clientId);
+        if (currentRetryCount != null && currentRetryCount.intValue() != 0) {
+            this.retryCounts.put(clientId, 0);
+        }
     }
 
     protected int getRetryCount(String clientId) {

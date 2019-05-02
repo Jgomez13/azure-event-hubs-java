@@ -9,90 +9,94 @@ import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.BlobProperties;
 import com.microsoft.azure.storage.blob.BlobRequestOptions;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
-import com.microsoft.azure.storage.blob.LeaseState;
 
-class AzureBlobLease extends Lease
-{
-	private transient CloudBlockBlob blob; // do not serialize
-	private transient BlobRequestOptions options; // do not serialize
-	private String offset = null; // null means checkpoint is uninitialized
-	private long sequenceNumber = 0;
+final class AzureBlobLease extends CompleteLease {
+    private final transient CloudBlockBlob blob; // do not serialize
+    private final transient BlobRequestOptions options; // do not serialize
+    private String offset = null; // null means checkpoint is uninitialized
+    private long sequenceNumber = 0;
+    private String token = null;
 
-	// not intended to be used; built for GSon
-	private AzureBlobLease()
-	{
-		super();
-	}
+    // not intended to be used; built for GSon
+    @SuppressWarnings("unused")
+    private AzureBlobLease() {
+        super();
+        this.blob = null; // so that we can mark blob as final
+        this.options = null; // so that we can mark options as final
+    }
 
-	AzureBlobLease(String partitionId, CloudBlockBlob blob, BlobRequestOptions options)
-	{
-		super(partitionId);
-		this.blob = blob;
-		this.options = options;
-	}
+    AzureBlobLease(String partitionId, CloudBlockBlob blob, BlobRequestOptions options) {
+        super(partitionId);
+        this.blob = blob;
+        this.options = options;
+    }
 
-	AzureBlobLease(AzureBlobLease source)
-	{
-		super(source);
-		this.offset = source.offset;
-		this.sequenceNumber = source.sequenceNumber;
-		this.blob = source.blob;
-		this.options = source.options;
-	}
+    AzureBlobLease(AzureBlobLease source) {
+        super(source);
+        this.offset = source.offset;
+        this.sequenceNumber = source.sequenceNumber;
+        this.blob = source.blob;
+        this.options = source.options;
+        this.token = source.token;
+    }
 
-	AzureBlobLease(AzureBlobLease source, CloudBlockBlob blob, BlobRequestOptions options)
-	{
-		super(source);
-		this.offset = source.offset;
-		this.sequenceNumber = source.sequenceNumber;
-		this.blob = blob;
-		this.options = options;
-	}
-	
-	AzureBlobLease(Lease source, CloudBlockBlob blob, BlobRequestOptions options)
-	{
-		super(source);
-		this.blob = blob;
-		this.options = options;
-	}
-	
-	CloudBlockBlob getBlob() { return this.blob; }
-	
-	void setOffset(String offset) { this.offset = offset; }
-	
-	String getOffset() { return this.offset; }
+    AzureBlobLease(AzureBlobLease source, CloudBlockBlob blob, BlobRequestOptions options) {
+        super(source);
+        this.offset = source.offset;
+        this.sequenceNumber = source.sequenceNumber;
+        this.blob = blob;
+        this.options = options;
+        this.token = source.token;
+    }
 
-	void setSequenceNumber(long sequenceNumber) { this.sequenceNumber = sequenceNumber; }
-	
-	long getSequenceNumber() { return this.sequenceNumber; }
-	
-	Checkpoint getCheckpoint()
-	{
-		return new Checkpoint(this.getPartitionId(), this.offset, this.sequenceNumber);
-	}
+    AzureBlobLease(CompleteLease source, CloudBlockBlob blob, BlobRequestOptions options) {
+        super(source);
+        this.blob = blob;
+        this.options = options;
+    }
 
-	@Override
-	public boolean isExpired() throws Exception
-	{
-		this.blob.downloadAttributes(null, options, null); // Get the latest metadata
-		LeaseState currentState = this.blob.getProperties().getLeaseState();
-		return (currentState != LeaseState.LEASED); 
-	}
-	
-	@Override
-	String getStateDebug()
-	{
-		String retval = "uninitialized";
-		try
-		{
-			this.blob.downloadAttributes();
-			BlobProperties props = this.blob.getProperties();
-			retval = props.getLeaseState().toString() + " " + props.getLeaseStatus().toString() + " " + props.getLeaseDuration().toString();
-		}
-		catch (StorageException e)
-		{
-			retval = "downloadAttributes on the blob caught " + e.toString();
-		}
-		return retval; 
-	}
+    CloudBlockBlob getBlob() {
+        return this.blob;
+    }
+
+    String getOffset() {
+        return this.offset;
+    }
+
+    void setOffset(String offset) {
+        this.offset = offset;
+    }
+
+    long getSequenceNumber() {
+        return this.sequenceNumber;
+    }
+
+    void setSequenceNumber(long sequenceNumber) {
+        this.sequenceNumber = sequenceNumber;
+    }
+    
+    String getToken() {
+        return this.token;
+    }
+    
+    void setToken(String token) {
+        this.token = token;
+    }
+
+    Checkpoint getCheckpoint() {
+        return new Checkpoint(this.getPartitionId(), this.offset, this.sequenceNumber);
+    }
+
+    @Override
+    String getStateDebug() {
+        String retval = "uninitialized";
+        try {
+            this.blob.downloadAttributes();
+            BlobProperties props = this.blob.getProperties();
+            retval = props.getLeaseState().toString() + " " + props.getLeaseStatus().toString() + " " + props.getLeaseDuration().toString();
+        } catch (StorageException e) {
+            retval = "downloadAttributes on the blob caught " + e.toString();
+        }
+        return retval;
+    }
 }

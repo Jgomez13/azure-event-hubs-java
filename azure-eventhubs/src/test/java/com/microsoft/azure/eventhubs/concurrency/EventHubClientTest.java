@@ -4,62 +4,66 @@
  */
 package com.microsoft.azure.eventhubs.concurrency;
 
-import java.io.IOException;
-import java.util.concurrent.*;
+import com.microsoft.azure.eventhubs.ConnectionStringBuilder;
+import com.microsoft.azure.eventhubs.EventHubClient;
+import com.microsoft.azure.eventhubs.EventPosition;
+import com.microsoft.azure.eventhubs.PartitionReceiver;
+import com.microsoft.azure.eventhubs.lib.ApiTestBase;
+import com.microsoft.azure.eventhubs.lib.TestBase;
+import com.microsoft.azure.eventhubs.lib.TestContext;
+import org.junit.Assert;
+import org.junit.Test;
 
-import org.junit.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
-import com.microsoft.azure.eventhubs.*;
-import com.microsoft.azure.eventhubs.lib.*;
+public class EventHubClientTest extends ApiTestBase {
 
-public class EventHubClientTest extends ApiTestBase
-{
-	
-	@Test()
-	public void testParallelEventHubClients() throws EventHubException, InterruptedException, ExecutionException, IOException
-	{
-		final String consumerGroupName = TestContext.getConsumerGroupName();
-		final String partitionId = "0";
-		
-		@SuppressWarnings("unchecked")
-		CompletableFuture<EventHubClient>[] createFutures = new CompletableFuture[4];
-		try 
-		{
-			ConnectionStringBuilder connectionString = TestContext.getConnectionString();
-			for (int i = 0; i < 4 ; i ++)
-			{
-			 createFutures[i] = EventHubClient.createFromConnectionString(connectionString.toString());		
-			}
-			
-			CompletableFuture.allOf(createFutures).get();
-			boolean firstOne = true;
-			for (CompletableFuture<EventHubClient> createFuture: createFutures)
-			{
-				final EventHubClient ehClient = createFuture.join();
-				if (firstOne)
-				{
-					TestBase.pushEventsToPartition(ehClient, partitionId, 10).get();
-					firstOne = false;
-				}
-				
-				PartitionReceiver receiver = ehClient.createReceiverSync(consumerGroupName, partitionId, PartitionReceiver.START_OF_STREAM, false);
-				Assert.assertTrue(receiver.receiveSync(100).iterator().hasNext());
-			}
-		}
-		finally
-		{
-			if (createFutures != null)
-			{
-				for (CompletableFuture<EventHubClient> createFuture: createFutures)
-				{
-					if (!createFuture.isCancelled() || !createFuture.isCompletedExceptionally())
-					{
-						EventHubClient ehClient = createFuture.join();
-						ehClient.close();
-					}
-				}
-			}
-		}
-	}
-	
+    @Test()
+    public void testParallelEventHubClients() throws Exception {
+
+        final String consumerGroupName = TestContext.getConsumerGroupName();
+        final String partitionId = "0";
+        final int noOfClients = 4;
+        final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
+
+        @SuppressWarnings("unchecked")
+        CompletableFuture<EventHubClient>[] createFutures = new CompletableFuture[noOfClients];
+        try {
+            ConnectionStringBuilder connectionString = TestContext.getConnectionString();
+            for (int i = 0; i < noOfClients; i++) {
+                createFutures[i] = EventHubClient.create(connectionString.toString(), executorService);
+            }
+
+            CompletableFuture.allOf(createFutures).get();
+            boolean firstOne = true;
+            for (CompletableFuture<EventHubClient> createFuture : createFutures) {
+                final EventHubClient ehClient = createFuture.join();
+                if (firstOne) {
+                    TestBase.pushEventsToPartition(ehClient, partitionId, 10).get();
+                    firstOne = false;
+                }
+
+                PartitionReceiver receiver = ehClient.createReceiverSync(consumerGroupName, partitionId, EventPosition.fromStartOfStream());
+                try {
+                    Assert.assertTrue(receiver.receiveSync(100).iterator().hasNext());
+                } finally {
+                    receiver.closeSync();
+                }
+            }
+        } finally {
+            if (createFutures != null) {
+                for (CompletableFuture<EventHubClient> createFuture : createFutures) {
+                    if (!createFuture.isCancelled() || !createFuture.isCompletedExceptionally()) {
+                        EventHubClient ehClient = createFuture.join();
+                        ehClient.closeSync();
+                    }
+                }
+            }
+
+            executorService.shutdown();
+        }
+    }
+
 }
