@@ -13,9 +13,13 @@ import com.microsoft.azure.eventhubs.SecurityToken;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.Consumer;
 
 final class CBSChannel {
-
+	final ScheduledExecutorService executor;
     final FaultTolerantObject<RequestResponseChannel> innerChannel;
     final SessionProvider sessionProvider;
     final AmqpConnection connectionEventDispatcher;
@@ -23,8 +27,9 @@ final class CBSChannel {
     public CBSChannel(
             final SessionProvider sessionProvider,
             final AmqpConnection connection,
-            final String clientId) {
-
+            final String clientId,
+            final ScheduledExecutorService executor) {
+    	this.executor = executor;
         this.sessionProvider = sessionProvider;
         this.connectionEventDispatcher = connection;
 
@@ -36,6 +41,25 @@ final class CBSChannel {
     }
 
     public void sendToken(
+            final ReactorDispatcher dispatcher,
+            final CompletableFuture<SecurityToken> tokenFuture,
+            final String tokenAudience,
+            final OperationResult<Void, Exception> sendTokenCallback,
+    		final Consumer<Exception> errorCallback) {
+    	tokenFuture.thenAcceptAsync((token) -> {
+    				innerSendToken(dispatcher, token, tokenAudience, sendTokenCallback);
+    			}, this.executor).
+    		whenCompleteAsync((empty, exception) -> {
+    				// TODO: whenCompleteAsync presents a Throwable. But many of the error callbacks expect
+    				// an Exception. For now, do a cast here. Will we ever actually get an error that is
+    				// not an Exception?
+    				if ((exception != null) && (exception instanceof Exception)) {
+    					errorCallback.accept((Exception)exception);
+    				}
+    			}, this.executor);
+    }
+    
+    private void innerSendToken(
             final ReactorDispatcher dispatcher,
             final SecurityToken token,
             final String tokenAudience,

@@ -53,7 +53,7 @@ public final class MessagingFactory extends ClientEntity implements AmqpConnecti
     private CompletableFuture<MessagingFactory> open;
     private CompletableFuture<?> openTimer;
     private CompletableFuture<?> closeTimer;
-    private String reactorCreationTime;
+    private String reactorCreationTime;			// used when looking at Java dumps, do not remove
 
     MessagingFactory(final String hostname,
     				 final Duration operationTimeout,
@@ -270,7 +270,7 @@ public final class MessagingFactory extends ClientEntity implements AmqpConnecti
     public CBSChannel getCBSChannel() {
         synchronized (this.cbsChannelCreateLock) {
             if (this.cbsChannel == null) {
-                this.cbsChannel = new CBSChannel(this, this, this.getClientId());
+                this.cbsChannel = new CBSChannel(this, this, this.getClientId(), this.executor);
             }
         }
 
