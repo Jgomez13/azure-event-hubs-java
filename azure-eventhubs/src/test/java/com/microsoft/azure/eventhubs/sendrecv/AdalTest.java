@@ -28,7 +28,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public final class AdalTest extends ApiTestBase {
-
     final ExecutorService executorService = Executors.newCachedThreadPool();
 
     final static String TENANT_ID = "----TENANT_ID----";
@@ -40,7 +39,6 @@ public final class AdalTest extends ApiTestBase {
 
     // @Test
     public void runEventHubSendReceiveTest() throws Exception {
-
         final String testMessage = "somedata test";
         final AuthenticationContext authenticationContext = new AuthenticationContext(
                 "https://login.windows.net/" + TENANT_ID,
@@ -73,7 +71,6 @@ public final class AdalTest extends ApiTestBase {
 
     // @Test
     public void runEventHubSendReceiveWithTokenProviderTest() throws Exception {
-
         final AuthenticationContext authenticationContext = new AuthenticationContext(
                 "https://login.windows.net/" + TENANT_ID,
                 true,
@@ -94,7 +91,7 @@ public final class AdalTest extends ApiTestBase {
                         final CompletableFuture<SecurityToken> result = new CompletableFuture<>();
                         authenticationContext.acquireToken(AzureActiveDirectoryTokenProvider.EVENTHUBS_REGISTERED_AUDIENCE,
                                 clientCredential,
-                                new AuthenticationCallback() {
+                                new AuthenticationCallback<AuthenticationResult>() {
                                     @Override
                                     public void onSuccess(AuthenticationResult authenticationResult) {
                                         result.complete(new SecurityToken(
@@ -131,7 +128,6 @@ public final class AdalTest extends ApiTestBase {
 
     // @Test(expected=AuthorizationFailedException.class)
     public void noRoleAssigned() throws Exception {
-
         // TODO: REMOVE ROLE ASSIGNMENT BEFORE RUNNING THE TEST (to be automated - manual step for now)
         final AuthenticationContext authenticationContext = new AuthenticationContext(
                 "https://login.windows.net/" + TENANT_ID,
@@ -154,7 +150,6 @@ public final class AdalTest extends ApiTestBase {
 
     // @Test
     public void performManualActionsRbacRoles() throws Exception {
-
         // TODO: this test keeps sending messages - perform actions on the background and see the expected output on console
         final AuthenticationContext authenticationContext = new AuthenticationContext(
                 "https://login.windows.net/" + TENANT_ID,
@@ -187,7 +182,6 @@ public final class AdalTest extends ApiTestBase {
 
     @Test(expected=RuntimeException.class)
     public void invalidAuthenticationContextTest() throws Exception {
-
         final ConnectionStringBuilder connectionString = TestContext.getConnectionString();
         final ExecutorService exectorService = Executors.newCachedThreadPool();
         final AuthenticationContext authenticationContext = new AuthenticationContext(
@@ -203,7 +197,6 @@ public final class AdalTest extends ApiTestBase {
 
     @Test(expected=IllegalArgumentException.class)
     public void nullAuthenticationContextTest() throws Exception {
-
         final ConnectionStringBuilder connectionString = TestContext.getConnectionString();
         final ClientCredential clientCredential = new ClientCredential("wrong_creds","random");
         EventHubClient.create(
@@ -217,7 +210,6 @@ public final class AdalTest extends ApiTestBase {
 
     @Test(expected=IllegalArgumentException.class)
     public void nullClientCredsTest() throws Exception {
-
         final ConnectionStringBuilder connectionString = TestContext.getConnectionString();
         final ExecutorService exectorService = Executors.newCachedThreadPool();
         final AuthenticationContext authenticationContext = new AuthenticationContext(
@@ -236,7 +228,6 @@ public final class AdalTest extends ApiTestBase {
 
     @Test(expected=ExecutionException.class)
     public void invalidNamespaceEndpointTest() throws Exception {
-
         final ConnectionStringBuilder connectionString = TestContext.getConnectionString();
         final ExecutorService exectorService = Executors.newCachedThreadPool();
         final AuthenticationContext authenticationContext = new AuthenticationContext(

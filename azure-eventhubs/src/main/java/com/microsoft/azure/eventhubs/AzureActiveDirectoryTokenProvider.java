@@ -34,7 +34,7 @@ public final class AzureActiveDirectoryTokenProvider implements ITokenProvider {
         return result;
     }
 
-    public static class EventHubsAuthenticationCallback implements AuthenticationCallback {
+    public static class EventHubsAuthenticationCallback implements AuthenticationCallback<AuthenticationResult> {
         final CompletableFuture<SecurityToken> result;
 
         public EventHubsAuthenticationCallback(final CompletableFuture<SecurityToken> result) {
@@ -57,6 +57,6 @@ public final class AzureActiveDirectoryTokenProvider implements ITokenProvider {
     public interface ITokenAcquirer {
         Future<AuthenticationResult> acquireToken(
                 final AuthenticationContext authenticationContext,
-                final AuthenticationCallback authenticationCallback);
+                final AuthenticationCallback<AuthenticationResult> authenticationCallback);
     }
 }
