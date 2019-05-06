@@ -10,6 +10,8 @@ import javax.crypto.spec.SecretKeySpec;
 import com.microsoft.azure.eventhubs.ITokenProvider;
 import com.microsoft.azure.eventhubs.SecurityToken;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -21,9 +23,6 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
-
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 
 public class SharedAccessSignatureTokenProvider implements ITokenProvider {
     final String keyName;

@@ -102,7 +102,7 @@ public final class EventHubClientImpl extends ClientEntity implements EventHubCl
                     }
                 }, executor);
     }
-    
+
     public String getEventHubName() {
         return eventHubName;
     }

@@ -17,6 +17,7 @@ import java.net.URI;
 import java.nio.channels.UnresolvedAddressException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 
 /**
@@ -562,7 +563,6 @@ public interface EventHubClient {
      * @param partitionId       the partition Id that the receiver belongs to. All data received will be from this partition only.
      * @param eventPosition     the position to start receiving the events from. See {@link EventPosition}
      * @param epoch             an unique identifier (epoch value) that the service uses, to enforce partition/lease ownership.
-     * @param receiverOptions   the set of options to enable on the event hubs receiver
      * @return PartitionReceiver instance which can be used for receiving {@link EventData}.
      * @throws EventHubException if Service Bus service encountered problems during the operation.
      */
@@ -585,7 +585,6 @@ public interface EventHubClient {
      * @param partitionId       the partition Id that the receiver belongs to. All data received will be from this partition only.
      * @param eventPosition     the position to start receiving the events from. See {@link EventPosition}
      * @param epoch             an unique identifier (epoch value) that the service uses, to enforce partition/lease ownership.
-     * @param receiverOptions   the set of options to enable on the event hubs receiver
      * @return a CompletableFuture that would result in a PartitionReceiver when it is completed.
      * @throws EventHubException if Service Bus service encountered problems during the operation.
      * @see PartitionReceiver
