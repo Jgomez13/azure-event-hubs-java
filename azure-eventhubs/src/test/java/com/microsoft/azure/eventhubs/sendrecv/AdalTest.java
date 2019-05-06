@@ -5,7 +5,6 @@ import com.microsoft.aad.adal4j.AuthenticationContext;
 import com.microsoft.aad.adal4j.AuthenticationResult;
 import com.microsoft.aad.adal4j.ClientCredential;
 import com.microsoft.azure.eventhubs.AzureActiveDirectoryTokenProvider;
-import com.microsoft.azure.eventhubs.AuthorizationFailedException;
 import com.microsoft.azure.eventhubs.ConnectionStringBuilder;
 import com.microsoft.azure.eventhubs.EventData;
 import com.microsoft.azure.eventhubs.EventHubClient;
@@ -13,6 +12,7 @@ import com.microsoft.azure.eventhubs.ITokenProvider;
 import com.microsoft.azure.eventhubs.PartitionSender;
 import com.microsoft.azure.eventhubs.PartitionReceiver;
 import com.microsoft.azure.eventhubs.SecurityToken;
+import com.microsoft.azure.eventhubs.impl.EventPositionImpl;
 import com.microsoft.azure.eventhubs.lib.ApiTestBase;
 import com.microsoft.azure.eventhubs.lib.TestContext;
 import org.junit.Assert;
@@ -35,7 +35,7 @@ public final class AdalTest extends ApiTestBase {
     final static String CLIENT_ID = "---CLIENT_ID----";
     final static String CLIENT_SECRET = "---CLIENT_SECRET---";
 
-    final static String EVENTHUB_NAME = TestContext.getConnectionString().getEntityPath();
+    final static String EVENTHUB_NAME = TestContext.getConnectionString().getEventHubName();
     final static String NAMESPACE_ENDPOINT = TestContext.getConnectionString().getEndpoint().getHost();
 
     // @Test
@@ -53,13 +53,15 @@ public final class AdalTest extends ApiTestBase {
                 new URI("sb://" + NAMESPACE_ENDPOINT),
                 EVENTHUB_NAME,
                 authenticationContext,
-                clientCredential).get();
+                clientCredential,
+                TestContext.EXECUTOR_SERVICE,
+                null).get();
 
 
-        final PartitionReceiver pReceiver = ehClient.createReceiverSync("$Default", "0", PartitionReceiver.END_OF_STREAM);
+        final PartitionReceiver pReceiver = ehClient.createReceiverSync("$Default", "0", EventPositionImpl.fromEndOfStream());
 
         final PartitionSender pSender = ehClient.createPartitionSenderSync("0");
-        pSender.send(new EventData(testMessage.getBytes()));
+        pSender.send(EventData.create(testMessage.getBytes()));
 
         final Iterable<EventData> events = pReceiver.receiveSync(100);
         Assert.assertEquals(testMessage, new String(events.iterator().next().getBytes()));
@@ -109,13 +111,15 @@ public final class AdalTest extends ApiTestBase {
 
                         return result;
                     }
-                }).get();
+                },
+                TestContext.EXECUTOR_SERVICE,
+                null).get();
 
 
-        final PartitionReceiver pReceiver = ehClient.createReceiverSync("$Default", "0", PartitionReceiver.END_OF_STREAM);
+        final PartitionReceiver pReceiver = ehClient.createReceiverSync("$Default", "0", EventPositionImpl.fromEndOfStream());
 
         final PartitionSender pSender = ehClient.createPartitionSenderSync("0");
-        pSender.send(new EventData(testMessage.getBytes()));
+        pSender.send(EventData.create(testMessage.getBytes()));
 
         final Iterable<EventData> events = pReceiver.receiveSync(100);
         Assert.assertEquals(testMessage, new String(events.iterator().next().getBytes()));
@@ -141,9 +145,11 @@ public final class AdalTest extends ApiTestBase {
                 new URI("sb://" + NAMESPACE_ENDPOINT),
                 EVENTHUB_NAME,
                 authenticationContext,
-                clientCredential).get();
+                clientCredential,
+                TestContext.EXECUTOR_SERVICE,
+                null).get();
 
-        ehClient.sendSync(new EventData("some text".getBytes()));
+        ehClient.sendSync(EventData.create("some text".getBytes()));
     }
 
     // @Test
@@ -162,11 +168,13 @@ public final class AdalTest extends ApiTestBase {
                 new URI("sb://" + NAMESPACE_ENDPOINT),
                 EVENTHUB_NAME,
                 authenticationContext,
-                clientCredential).get();
+                clientCredential,
+                TestContext.EXECUTOR_SERVICE,
+                null).get();
 
         while (true) {
             try {
-                ehClient.sendSync(new EventData("some text".getBytes()));
+                ehClient.sendSync(EventData.create("some text".getBytes()));
                 System.out.println(".");
             } catch (Exception exception) {
                 System.out.println("Captured exception: ");
@@ -188,8 +196,9 @@ public final class AdalTest extends ApiTestBase {
                 exectorService);
 
         final ClientCredential clientCredential = new ClientCredential("wrong_creds","random");
-        final EventHubClient ehClient = EventHubClient.create(connectionString.getEndpoint(), connectionString.getEntityPath(), authenticationContext, clientCredential).get();
-        ehClient.sendSync(new EventData("something".getBytes()));
+        final EventHubClient ehClient = EventHubClient.create(connectionString.getEndpoint(), connectionString.getEventHubName(), authenticationContext, clientCredential,
+        		TestContext.EXECUTOR_SERVICE, null).get();
+        ehClient.sendSync(EventData.create("something".getBytes()));
     }
 
     @Test(expected=IllegalArgumentException.class)
@@ -199,9 +208,11 @@ public final class AdalTest extends ApiTestBase {
         final ClientCredential clientCredential = new ClientCredential("wrong_creds","random");
         EventHubClient.create(
                 connectionString.getEndpoint(),
-                connectionString.getEntityPath(),
+                connectionString.getEventHubName(),
                 null,
-                clientCredential).get();
+                clientCredential,
+                TestContext.EXECUTOR_SERVICE,
+                null).get();
     }
 
     @Test(expected=IllegalArgumentException.class)
@@ -216,9 +227,11 @@ public final class AdalTest extends ApiTestBase {
 
         EventHubClient.create(
                 connectionString.getEndpoint(),
-                connectionString.getEntityPath(),
+                connectionString.getEventHubName(),
                 authenticationContext,
-                (ClientCredential) null).get();
+                (ClientCredential) null,
+                TestContext.EXECUTOR_SERVICE,
+                null).get();
     }
 
     @Test(expected=ExecutionException.class)
@@ -234,8 +247,10 @@ public final class AdalTest extends ApiTestBase {
 
         EventHubClient.create(
                 new URI("amqps://nonexistantNamespace"),
-                connectionString.getEntityPath(),
+                connectionString.getEventHubName(),
                 authenticationContext,
-                clientCredential).get();
+                clientCredential,
+                TestContext.EXECUTOR_SERVICE,
+                null).get();
     }
 }
